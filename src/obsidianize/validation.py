@@ -74,22 +74,31 @@ def _check_ollama_connection(config: Config) -> Optional[str]:
         import ollama as ol
         client = ol.Client(host=config.ollama_base_url)
         response = client.list()
-        pulled = [m.model for m in response.models]
-        # Check if configured model (or a prefix of it) is available
-        model_base = config.ollama_model.split(":")[0]
-        if pulled and not any(model_base in m for m in pulled):
-            pulled_str = ", ".join(pulled) or "(none)"
-            return (
-                f"Ollama model [bold]{config.ollama_model}[/bold] is not available.\n"
-                f"  → Pulled models: {pulled_str}\n"
-                f"  → Run: ollama pull {config.ollama_model}"
-            )
-        return None
     except Exception as exc:
         return (
             f"Cannot reach Ollama at [bold]{config.ollama_base_url}[/bold]: {exc}\n"
             f"  → Is Ollama running? Start it with: ollama serve"
         )
+
+    try:
+        pulled = [m.model for m in response.models]
+    except Exception:
+        # Defensive: unknown response shape from this ollama library version
+        pulled = []
+
+    model_name = config.ollama_model
+    model_base = model_name.split(":")[0]
+
+    # No match found — always an error, even if the pulled list is empty
+    if not any(model_base in m for m in pulled):
+        pulled_str = ", ".join(pulled) if pulled else "(none pulled)"
+        return (
+            f"Ollama model [bold]{model_name}[/bold] is not available on this machine.\n"
+            f"  → Pulled models: {pulled_str}\n"
+            f"  → Run: ollama pull {model_name}"
+        )
+
+    return None
 
 
 def mask_key(key: Optional[str]) -> str:
