@@ -6,10 +6,11 @@ from rich import box
 from rich.console import Console
 from rich.table import Table
 
-from obsidianize.config import load_config
+from obsidianize.config import Config, load_config
 from obsidianize.db import Database
 from obsidianize.notes import archive_note, vault_folder_name
 from obsidianize.sync import SyncResult, sync_project
+from obsidianize.validation import check_and_confirm
 
 app = typer.Typer(
     name="obsidianize",
@@ -19,7 +20,17 @@ app = typer.Typer(
 console = Console()
 
 
-def _db(config) -> Database:
+def _load_config() -> Config:
+    """Load config, exiting with a friendly message if OBSIDIAN_VAULT_PATH is missing."""
+    try:
+        return load_config()
+    except ValueError as exc:
+        console.print(f"\n[bold red]Configuration error:[/bold red] {exc}")
+        console.print("[dim]Copy .env.example to .env and fill in your settings.[/dim]\n")
+        raise typer.Exit(1)
+
+
+def _db(config: Config) -> Database:
     return Database(config.vault_path / "obsidianize.db")
 
 
@@ -45,12 +56,20 @@ def add(
     path: Path = typer.Argument(..., help="Project root path to register and sync"),
 ) -> None:
     """Register a project path and run an initial sync."""
-    config = load_config()
+    config = _load_config()
+    db_path = config.vault_path / "obsidianize.db"
+
+    if not check_and_confirm(config, db_path):
+        raise typer.Exit(1)
+
     db = _db(config)
     root = path.resolve()
 
     if not root.exists():
-        console.print(f"[red]Path does not exist: {root}[/red]")
+        console.print(f"\n[red]Project path does not exist:[/red] {root}")
+        raise typer.Exit(1)
+    if not root.is_dir():
+        console.print(f"\n[red]Project path is not a directory:[/red] {root}")
         raise typer.Exit(1)
 
     folder = vault_folder_name(root)
@@ -70,7 +89,12 @@ def sync(
     path: Optional[Path] = typer.Argument(None, help="Project to sync (omit to sync all)"),
 ) -> None:
     """Sync one or all registered projects."""
-    config = load_config()
+    config = _load_config()
+    db_path = config.vault_path / "obsidianize.db"
+
+    if not check_and_confirm(config, db_path):
+        raise typer.Exit(1)
+
     db = _db(config)
 
     if path:
@@ -96,7 +120,11 @@ def remove(
     path: Path = typer.Argument(..., help="Project root path to unregister"),
 ) -> None:
     """Unregister a project and archive all its notes."""
-    config = load_config()
+    config = _load_config()
+
+    if not check_and_confirm(config, config.vault_path / "obsidianize.db"):
+        raise typer.Exit(1)
+
     db = _db(config)
     root = path.resolve()
 
@@ -109,7 +137,8 @@ def remove(
     files = db.get_active_files(project.id)
     archived = 0
     for f in files:
-        note_path = vault_folder / f.note_filename
+        note_path = vault_folder / f.vault_subdir / f.note_filename \
+            if f.vault_subdir else vault_folder / f.note_filename
         if note_path.exists():
             archive_note(note_path, vault_folder)
             archived += 1
@@ -121,7 +150,11 @@ def remove(
 @app.command()
 def status() -> None:
     """Show all registered projects and their last sync time."""
-    config = load_config()
+    config = _load_config()
+
+    if not check_and_confirm(config, config.vault_path / "obsidianize.db"):
+        raise typer.Exit(1)
+
     db = _db(config)
     projects = db.list_projects()
 
