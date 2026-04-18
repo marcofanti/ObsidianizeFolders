@@ -30,28 +30,28 @@ def scan_project(
     exclude_set = set(exclude_dirs)
     results: list[ScannedFile] = []
 
-    # Depth 0: root-level files
+    # Depth 0: root-level files (skip dotfiles)
     for entry in root.iterdir():
-        if entry.is_file() and entry.suffix in ext_set:
+        if entry.is_file() and not entry.name.startswith(".") and entry.suffix in ext_set:
             results.append(_make(entry, root, vault_subdir=""))
 
-    # Depth 1: root subdirs → vault subfolders
+    # Depth 1: root subdirs → vault subfolders (skip dotfolders and excluded dirs)
     for entry in root.iterdir():
-        if not entry.is_dir() or entry.name in exclude_set:
+        if not entry.is_dir() or entry.name.startswith(".") or entry.name in exclude_set:
             continue
         subdir_name = entry.name
 
-        # Direct files in subdir
+        # Direct files in subdir (skip dotfiles)
         for child in entry.iterdir():
-            if child.is_file() and child.suffix in ext_set:
+            if child.is_file() and not child.name.startswith(".") and child.suffix in ext_set:
                 results.append(_make(child, root, vault_subdir=subdir_name))
 
         # Depth 2: one more level within subdir (flat into same vault subdir, no new folder)
         for subentry in entry.iterdir():
-            if not subentry.is_dir() or subentry.name in exclude_set:
+            if not subentry.is_dir() or subentry.name.startswith(".") or subentry.name in exclude_set:
                 continue
             for child in subentry.iterdir():
-                if child.is_file() and child.suffix in ext_set:
+                if child.is_file() and not child.name.startswith(".") and child.suffix in ext_set:
                     results.append(_make(child, root, vault_subdir=subdir_name))
 
     return results
