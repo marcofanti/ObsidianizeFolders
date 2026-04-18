@@ -87,10 +87,8 @@ def _check_ollama_connection(config: Config) -> Optional[str]:
         pulled = []
 
     model_name = config.ollama_model
-    model_base = model_name.split(":")[0]
 
-    # No match found — always an error, even if the pulled list is empty
-    if not any(model_base in m for m in pulled):
+    if not _model_is_pulled(model_name, pulled):
         pulled_str = ", ".join(pulled) if pulled else "(none pulled)"
         return (
             f"Ollama model [bold]{model_name}[/bold] is not available on this machine.\n"
@@ -99,6 +97,14 @@ def _check_ollama_connection(config: Config) -> Optional[str]:
         )
 
     return None
+
+
+def _model_is_pulled(model_name: str, pulled: list[str]) -> bool:
+    """Exact match: if no tag given, also try matching with :latest."""
+    candidates = {model_name}
+    if ":" not in model_name:
+        candidates.add(f"{model_name}:latest")
+    return any(m in candidates for m in pulled)
 
 
 def mask_key(key: Optional[str]) -> str:
