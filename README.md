@@ -243,6 +243,18 @@ obsidianize/
 
 ---
 
+## Inspiration & Prior Art
+
+This project sits at the intersection of two ideas gaining traction in the AI-native productivity space:
+
+**[Andrej Karpathy's llm-wiki](https://github.com/karpathy/llm-wiki)** — The concept of using an LLM to build a personal, queryable wiki from raw inputs. obsidianize applies this idea to source code: instead of ingesting notes and articles, it ingests project directories and distills them into structured knowledge.
+
+**[Claudeopedia](https://x.com/alliekmiller) by [Allie K. Miller](https://x.com/alliekmiller)** — Miller's "second brain" system built inside Claude Code, combining Obsidian, GitHub, and AI skills to move from chat-style AI interaction to an always-on operating system for knowledge. Her `/wiki` skill for rapid knowledge capture and the master context document pattern directly influenced the design of obsidianize's vault structure and note format. The goal is the same: stop re-explaining context to your AI, and start building a persistent, structured layer it can always reference.
+
+obsidianize takes these ideas and focuses them on a specific pain point: **your codebase**. Every project you work on deserves a distilled knowledge layer — one that travels with your vault, links to your other notes, and updates itself as your code evolves.
+
+---
+
 ## Open Design Decisions
 
 See [`DECISIONS.md`](DECISIONS.md) for documented trade-offs that may be revisited:
