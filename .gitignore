@@ -1,7 +1,11 @@
-.env
+# Dotfiles / dotfolders — ignore all, except safe exceptions
+.*
+!.gitignore
+!.env.example
+
+# Secrets
 *.db
 __pycache__/
-.venv/
 delete/
 .claude/
 .agents/
